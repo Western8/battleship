@@ -1,18 +1,25 @@
-import { INewUser, IUser } from "./types";
-import { db } from "./utils";
+import { deleteRoom } from "./room";
+import { IUser, IUserResponse } from "./types";
+import { counters, db } from "./utils";
 
-export function addUser(user: IUser): INewUser {
-  db.users.push(user);
+export function addUser(dataUser: IUser, wsIndex: number): IUserResponse {
+  db.users.push({
+    id: wsIndex,
+    name: dataUser.name,
+    password: dataUser.password,
+  });
 
-  console.log('db 11111111 ', db);
-  
-
-  const newUser: INewUser = {
-    index: (db.users.length - 1),
-    name: user.name,
+  const userResponse: IUserResponse = {
+    index: wsIndex, //(db.users.length - 1),
+    name: dataUser.name,
     error: false,
     errorText: '',
   }
 
-  return newUser;
+  return userResponse;
+}
+
+export function deleteUser(wsIndex: number): void {
+  deleteRoom(wsIndex);
+  db.users = db.users.filter(item => item.id !== wsIndex);
 }

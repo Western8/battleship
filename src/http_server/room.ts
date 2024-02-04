@@ -1,24 +1,43 @@
-import { INewUser, IRoom, IRoomUser } from "./types";
-import { db } from "./utils";
+import { IRoom, IRoomUser, Players } from "./types";
+import { counters, db } from "./utils";
 
-export function addRoom(wsIndex: number): IRoom {
+export function addRoom(wsIndex: number): void {
+  const user = db.users.find(item => item.id === wsIndex);
+  if (!user) return;
+  counters.rooms++;
   const newRoom: IRoom = {
-    roomId: wsIndex,
+    roomId: counters.rooms,
     roomUsers: [{
-      name: db.users[wsIndex].name,
+      name: user.name,// db.users[wsIndex].name,
       index: wsIndex,
     }]
   }
 
   db.rooms.push(newRoom);
-
-  return newRoom;
 }
 
-export function addUserToRoom(wsIndex: number, roomId: number): void {
-  const user: IRoomUser = {
-    name: db.users[wsIndex].name,
+export function addUserToRoom(wsIndex: number, roomId: number): Players {
+  const user = db.users.find(item => item.id === wsIndex);
+  if (!user) return [];
+  const roomUser: IRoomUser = {
+    name: user.name,
     index: wsIndex,
   }
-  db.rooms[roomId].roomUsers.push(user);
+  const room = db.rooms.find(item => item.roomId === roomId);
+  if (!room) return [];
+  if (!room.roomUsers.filter(item => item.index !== wsIndex).length) return [];
+  room.roomUsers.push(roomUser);
+
+  const players: Players = room.roomUsers.map(item => item.index);
+
+  deleteRoom(wsIndex);
+
+  return players;
+}
+
+export function deleteRoom(wsIndex: number): void {
+  db.rooms = db.rooms.filter(item => {
+    const myRooms = item.roomUsers.filter(item2 => item2.index === wsIndex);
+    return !myRooms.length
+  });
 }
