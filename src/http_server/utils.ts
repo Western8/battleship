@@ -4,6 +4,7 @@ export const db: IDB = {
   users: [],
   rooms: [],
   games: [],
+  winners: [],
 }
 
 export const counters: Counters = {

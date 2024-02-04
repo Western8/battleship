@@ -1,5 +1,18 @@
 import ws from "ws";
 
+export interface IDB {
+  users: Users;
+  rooms: IRoom[];
+  games: IGame[];
+  winners: Winners;
+}
+
+export interface Counters {
+  users: number;
+  rooms: number;
+  games: number;
+}
+
 export interface wsExt extends ws {
   wsIndex: number;
 }
@@ -31,14 +44,26 @@ export interface IRoom {
   roomUsers: IRoomUser[];
 }
 
+export interface ICell {
+  isShip: boolean;
+  ship: IShip | null;
+  status: Status;
+}
+
+export type CellsY = ICell[];
+
+export type Field = CellsY[];
+
 export interface IGamePlayer {
   idPlayer: number;
   ships: Ships;
+  field: Field;
 }
 
 export interface IGame {
     idGame: number;
     players: IGamePlayer[];
+    turn: number;
 }
 
 export interface IGameResponse {
@@ -60,11 +85,20 @@ export enum ShipsTypes {
   Huge = 'huge',
 }
 
+export enum Status {
+  Miss = 'miss',
+  Killed = 'killed',
+  Shot = 'shot',
+  None = 'none',
+}
+
+export interface IPosition {
+  x: number;
+  y: number;
+}
+
 export interface IShip {
-  position: {
-    x: number;
-    y: number;
-  };
+  position: IPosition;
   direction: boolean;
   length: number;
   type: ShipsTypes;
@@ -78,14 +112,25 @@ export interface IShipResponse {
   indexPlayer: number;
 }
 
-export interface IDB {
-  users: Users;
-  rooms: IRoom[];
-  games: IGame[];
+export interface IFeedback {
+  position: IPosition;
+  currentPlayer: number;
+  status: Status;
 }
 
-export interface Counters {
-  users: number;
-  rooms: number;
-  games: number;
+export interface ITurnResponse {
+  currentPlayer: number;
 }
+
+export interface IAttackResult {
+  feedbacks: IFeedback[],
+  game: IGame,
+}
+
+export interface Winner {
+  winner: number;
+  name: string;
+  wins: number;
+}
+
+export type Winners = Winner[];

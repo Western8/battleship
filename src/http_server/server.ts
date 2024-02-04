@@ -2,8 +2,8 @@ import ws, { WebSocketServer } from "ws";
 import { addUser, deleteUser } from "./users";
 import { addRoom, addUserToRoom } from "./room";
 import { counters, db } from "./utils";
-import { IGame, IGameResponse, IStartGameResponse, Players, WsClients, wsExt } from "./types";
-import { addGame, addShip, checkStartGame } from "./game";
+import { IAttackResult, IGame, IGameResponse, IStartGameResponse, ITurnResponse, Players, WsClients, wsExt } from "./types";
+import { addGame, addShip, attack, checkFinish, checkStartGame } from "./game";
 //import { httpServer } from "./index";
 const wsList = [];
 const wsClients: WsClients = [];
@@ -14,9 +14,7 @@ export const wsServer = new WebSocketServer({
 })
 
 wsServer.on('connection', (wsClient: wsExt) => {
-
-  console.log('1111111 New client!!');
-  console.log('wsServer.clients ', wsServer.clients.size);
+  console.log('wsServer.clients: ', wsServer.clients.size);
 
   counters.users++;
   wsClient.wsIndex = counters.users;
@@ -24,7 +22,6 @@ wsServer.on('connection', (wsClient: wsExt) => {
 
   wsClient.on('message', (message: string) => {
     console.log('message data', JSON.parse(message));
-    console.log('wsClient.wsIndex ', wsClient.wsIndex);
 
     const request = JSON.parse(message);
 
@@ -37,6 +34,7 @@ wsServer.on('connection', (wsClient: wsExt) => {
           id: 0
         }
         wsClient.send(JSON.stringify(response));
+        sendUpdateWinners();
         break;
 
       case 'create_room':
@@ -67,20 +65,7 @@ wsServer.on('connection', (wsClient: wsExt) => {
               itemWsClient.send(JSON.stringify(response));
             }
           })
-
-          /*
-                    const playersClients = wsClients.filter(item => players.includes(item.wsIndex));
-                    playersClients.forEach(itemPlayerClient => {
-                      wsServer.clients.forEach(itemWsClient => {
-                        if (itemWsClient === itemPlayerClient) {
-                          itemWsClient.send(JSON.stringify(response));
-                        }
-                      })
-                    })
-          */
         });
-
-
         break;
 
       case 'add_ships':
@@ -100,21 +85,44 @@ wsServer.on('connection', (wsClient: wsExt) => {
               data: JSON.stringify(gameResponse),
               id: 0
             }
+            const turnResponse: ITurnResponse = {
+              currentPlayer: gameStart.turn
+            };
+            const responseTurn = {
+              type: 'turn',
+              data: JSON.stringify(turnResponse),
+              id: 0
+            }
 
             wsServer.clients.forEach(itemWsClient => {
               const wsClientFind = wsClients.find(item => item.wsIndex === itemPlayer.idPlayer);
               if (itemWsClient === wsClientFind) {
                 itemWsClient.send(JSON.stringify(response));
+                itemWsClient.send(JSON.stringify(responseTurn));
               }
             })
           });
         }
-
         break;
+
+      case 'attack': {
+        const data = JSON.parse(request.data);
+        const attackResult = attack(data.gameId, data.indexPlayer, data.x, data.y);
+        if (attackResult) {
+          senAttackResult(attackResult);
+        };
+        break;
+      }
+
+      case 'randomAttack': {
+        const data = JSON.parse(request.data);
+        const attackResult = attack(data.gameId, data.indexPlayer);
+        if (attackResult) {
+          senAttackResult(attackResult);
+        };
+        break;
+      }
     }
-
-
-
   })
 
   wsServer.on('error', console.error);
@@ -136,4 +144,78 @@ function sendUpdateRooms(): void {
   wsServer.clients.forEach(item => {
     item.send(JSON.stringify(responseRooms));
   })
+}
+
+function sendUpdateWinners(): void {
+  const response = {
+    type: 'update_winners',
+    data: JSON.stringify(db.winners),
+    id: 0
+  }
+  wsServer.clients.forEach(item => {
+    item.send(JSON.stringify(response));
+  })
+}
+
+function senAttackResult(attackResult: IAttackResult): void {
+  const players = attackResult.game.players.map(item => item.idPlayer);
+
+  attackResult.feedbacks.forEach(itemFeedback => {
+    const response = {
+      type: 'attack',
+      data: JSON.stringify(itemFeedback),
+      id: 0
+    }
+
+    wsServer.clients.forEach(itemWsClient => {
+      const wsClientFilter = wsClients.filter(item => players.includes(item.wsIndex));
+      wsClientFilter.forEach(itemWsClientFilter => {
+        if (itemWsClient === itemWsClientFilter) {
+          itemWsClient.send(JSON.stringify(response));
+        }
+      })
+/*  
+      const wsClientFind = wsClients.find(item => item.wsIndex === itemFeedback.currentPlayer);
+      if (itemWsClient === wsClientFind) {
+        itemWsClient.send(JSON.stringify(response));
+      }
+      */
+    })
+  });
+
+  const turnResponse: ITurnResponse = {
+    currentPlayer: attackResult.game.turn
+  };
+  const response = {
+    type: 'turn',
+    data: JSON.stringify(turnResponse),
+    id: 0
+  }
+  wsServer.clients.forEach(itemWsClient => {
+    const wsClientFilter = wsClients.filter(item => players.includes(item.wsIndex));
+    wsClientFilter.forEach(itemWsClientFilter => {
+      if (itemWsClient === itemWsClientFilter) {
+        itemWsClient.send(JSON.stringify(response));
+      }
+    })
+  });
+
+  const winner = checkFinish(attackResult.game);
+  if (winner) {
+    const response = {
+      type: 'finish',
+      data: JSON.stringify({winPlayer: winner}),
+      id: 0
+    }
+    wsServer.clients.forEach(itemWsClient => {
+      const wsClientFilter = wsClients.filter(item => players.includes(item.wsIndex));
+      wsClientFilter.forEach(itemWsClientFilter => {
+        if (itemWsClient === itemWsClientFilter) {
+          itemWsClient.send(JSON.stringify(response));
+        }
+      })
+    });
+
+    sendUpdateWinners();
+  }
 }
