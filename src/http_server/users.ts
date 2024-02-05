@@ -3,7 +3,6 @@ import { IUser, IUserResponse } from "./types";
 import { counters, db } from "./utils";
 
 export function addUser(dataUser: IUser, wsIndex: number): IUserResponse {
-
   const userFind = db.users.find(item => item.name === dataUser.name);
   if (userFind !== undefined) {
     const userResponse: IUserResponse = {
@@ -19,6 +18,7 @@ export function addUser(dataUser: IUser, wsIndex: number): IUserResponse {
     id: wsIndex,
     name: dataUser.name,
     password: dataUser.password,
+    isBot: false,
   });
 
   const userResponse: IUserResponse = {
@@ -29,6 +29,18 @@ export function addUser(dataUser: IUser, wsIndex: number): IUserResponse {
   }
 
   return userResponse;
+}
+
+export function addBot(): number {
+  counters.users++;
+  const indexBot = counters.users;
+  db.users.push({
+    id: indexBot,
+    name: 'Bot',
+    password: '',
+    isBot: true,
+  });
+  return indexBot;
 }
 
 export function deleteUser(wsIndex: number): void {

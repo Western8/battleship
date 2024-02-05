@@ -1,5 +1,5 @@
-import { CellsY, Field, IAttackResult, IFeedback, IGame, IGamePlayer, IPosition, IRoom, IRoomUser, IShip, Players, Ships, Status } from "./types";
-import { counters, db } from "./utils";
+import { CellsY, Field, IAttackResult, IFeedback, IGame, IGamePlayer, IPosition, IRoom, IRoomUser, IShip, IShipModel, Players, Ships, ShipsTypes, Status } from "./types";
+import { counters, db, random } from "./utils";
 
 export function addGame(players: Players): IGame {
   const gamePlayers = players.map(item => {
@@ -17,6 +17,7 @@ export function addGame(players: Players): IGame {
     idGame: counters.games,
     players: gamePlayers,
     turn: players[randomPlayer],
+    gameOver: false,
   }
   db.games.push(game);
 
@@ -136,7 +137,7 @@ export function attack(idGame: number, wsIndex: number, x?: number, y?: number):
           surrounds.forEach(item => {
             feedbacks.push({
               position: { x: item.x, y: item.y },
-              currentPlayer: wsIndex, 
+              currentPlayer: wsIndex,
               status: Status.Miss,
             })
           })
@@ -215,13 +216,13 @@ export function checkFinish(game: IGame): number | undefined {
         })
       }
     }
+    game.gameOver = true;
   }
 
   return winner;
 }
 
 function getCellsNone(field: Field) {
-  //const cells = field.map(itemCellsY => itemCellsY.filter(itemCell => itemCell.status === Status.None)).flat();
   const cells = field.map((itemCellsY, indexX) => {
     return itemCellsY.map((itemCell, indexY) => {
       return {
@@ -241,6 +242,93 @@ function getRandomCell(field: Field): IPosition {
   return { x, y }
 }
 
-function random(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-} 
+export function getRandomShips(): Ships {
+  const ships: Ships = [];
+  const shipModels: IShipModel[] = [
+    { type: ShipsTypes.Huge, size: 4, count: 1 },
+    { type: ShipsTypes.Large, size: 3, count: 2 },
+    { type: ShipsTypes.Medium, size: 2, count: 3 },
+    { type: ShipsTypes.Small, size: 1, count: 4 },
+  ];
+  shipModels.sort((a, b) => (b.size - a.size));
+
+  const field: Field = [];
+  for (let x = 0; x < 10; x++) {
+    const cellsY: CellsY = [];
+    for (let y = 0; y < 10; y++) {
+      cellsY.push({
+        isShip: false,
+        ship: null,
+        status: Status.None,
+      });
+    }
+    field.push(cellsY);
+  }
+
+  shipModels.forEach(shipModel => {
+    for (let k = 0; k < shipModel.count; k++) {
+
+      let randomCell: IPosition = { x: 0, y: 0 };
+      let randomDirection = true;
+      let hasPosition = false;
+      let counter = 0;
+      while (!hasPosition) {
+        counter++;
+        if (counter > 9999) {
+          console.error("Stack overflow: can't find place for ships");
+          return ships;
+        }
+        randomCell = getRandomCell(field);
+        randomDirection = Boolean(random(0, 1));
+
+        hasPosition = true;
+        for (let i = 0; i < shipModel.size; i++) {
+          let shipX = randomCell.x;
+          let shipY = randomCell.y;
+          if (randomDirection) {
+            shipY += i;
+          } else {
+            shipX += i;
+          }
+          if ((shipX > 9) || (shipY > 9) || (field[shipX][shipY].status !== Status.None)) {
+            hasPosition = false;
+            break;
+          }
+        }
+      }
+
+      for (let i = 0; i < shipModel.size; i++) {
+        let shipX = randomCell.x;
+        let shipY = randomCell.y;
+        if (randomDirection) {
+          shipY += i;
+        } else {
+          shipX += i;
+        }
+        field[shipX][shipY] = {
+          isShip: true,
+          ship: null,
+          status: Status.Shot,
+        }
+        const surrounds = addMissSurround(field, shipX, shipY);
+        surrounds.forEach(item => {
+          field[item.x][item.y] = {
+            isShip: true,
+            ship: null,
+            status: Status.Shot,
+          }
+        });
+      }
+
+      const ship: IShip = {
+        length: shipModel.size,
+        direction: randomDirection,
+        position: randomCell,
+        type: shipModel.type,
+      }
+      ships.push(ship);
+    }
+  });
+
+  return ships;
+}

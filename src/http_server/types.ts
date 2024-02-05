@@ -23,6 +23,7 @@ export interface IUser {
   id: number;
   name: string;
   password: string;
+  isBot: boolean;
 }
 
 export interface IUserResponse {
@@ -64,6 +65,7 @@ export interface IGame {
     idGame: number;
     players: IGamePlayer[];
     turn: number;
+    gameOver: boolean;
 }
 
 export interface IGameResponse {
@@ -83,6 +85,12 @@ export enum ShipsTypes {
   Medium = 'medium',
   Large = 'large',
   Huge = 'huge',
+}
+
+export interface IShipModel {
+  type: ShipsTypes,
+  size: number,
+  count: number,
 }
 
 export enum Status {
