@@ -90,15 +90,21 @@ wsServer.on('connection', (wsClient: wsExt) => {
     }
   })
 
-  wsServer.on('error', console.error);
-
-  wsServer.on('close', () => {
-    console.log('DELETE USER     wsClent.wsIndex ', wsClient.wsIndex);
-
+  wsClient.on('close', () => {
+    console.log(`Websocket for client id ${wsClient.wsIndex} closed`);
     deleteUser(wsClient.wsIndex);
+    sendUpdateRooms();
   });
 
+  wsServer.on('error', console.error);
 });
+
+process.on('exit', () => {
+  wsServer.close();
+  console.log('Websocket server closed');
+});
+
+process.on('SIGINT', () => process.exit());
 
 function sendUpdateRooms(): void {
   const responseRooms = {
