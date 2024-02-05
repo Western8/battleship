@@ -68,6 +68,10 @@ wsServer.on('connection', (wsClient: wsExt) => {
         });
         break;
 
+      case 'single_play':
+        
+        break;
+
       case 'add_ships':
         const data = JSON.parse(request.data);
         const idGame = data.gameId;

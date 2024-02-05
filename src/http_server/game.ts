@@ -88,11 +88,10 @@ export function attack(idGame: number, wsIndex: number, x?: number, y?: number):
   const player = game.players.find(item => item.idPlayer !== wsIndex);
   if (!player) return undefined;
 
-  if (x === undefined) {
-    x = random(0, 9);
-  }
-  if (y === undefined) {
-    y = random(0, 9);
+  if ((x === undefined) || (y === undefined)) {
+    const randomCell: IPosition = getRandomCell(player.field);
+    x = randomCell.x;
+    y = randomCell.y;
   }
 
   let status = Status.None
@@ -219,6 +218,27 @@ export function checkFinish(game: IGame): number | undefined {
   }
 
   return winner;
+}
+
+function getCellsNone(field: Field) {
+  //const cells = field.map(itemCellsY => itemCellsY.filter(itemCell => itemCell.status === Status.None)).flat();
+  const cells = field.map((itemCellsY, indexX) => {
+    return itemCellsY.map((itemCell, indexY) => {
+      return {
+        x: indexX,
+        y: indexY,
+        status: itemCell.status,
+      }
+    });
+  }).flat().filter(item => item.status === Status.None);
+  return cells;
+}
+
+function getRandomCell(field: Field): IPosition {
+  const cells = getCellsNone(field);
+  const randomCell = random(0, (cells.length - 1));
+  const { x, y } = cells[randomCell];
+  return { x, y }
 }
 
 function random(min: number, max: number): number {
