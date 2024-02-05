@@ -34,6 +34,7 @@ wsServer.on('connection', (wsClient: wsExt) => {
           id: 0
         }
         wsClient.send(JSON.stringify(response));
+        sendUpdateRooms();
         sendUpdateWinners();
         break;
 
