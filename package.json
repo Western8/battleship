@@ -2,11 +2,11 @@
     "name": "ws_task",
     "version": "1.0.0",
     "description": "Template for the WebSocket remote control task",
-    "main": "index111.js",
-    "type": "module",
+    "main": "index.js",
     "scripts": {
-        "start": "node ./index.ts",
-        "start:dev": "nodemon --exec node --loader ts-node/esm ./index.ts",
+        "start:dev": "ts-node-dev ./index.ts",
+        "start": "npm run build && ts-node dist/main.js",
+        "build": "webpack --config ./webpack.config.js --env mode=prod",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "Andrei Auchynnikau",
@@ -15,10 +15,14 @@
     "devDependencies": {
         "@types/node": "^20.11.16",
         "@types/ws": "^8.5.10",
+        "clean-webpack-plugin": "^4.0.0",
         "nodemon": "^2.0.16",
+        "ts-loader": "^9.5.1",
         "ts-node": "^10.9.2",
         "ts-node-dev": "^2.0.0",
-        "typescript": "^5.3.3"
+        "typescript": "^5.3.3",
+        "webpack": "^5.90.1",
+        "webpack-cli": "^5.1.4"
     },
     "dependencies": {
         "ws": "^8.16.0"
