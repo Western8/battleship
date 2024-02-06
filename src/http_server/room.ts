@@ -4,6 +4,8 @@ import { counters, db } from "./utils";
 export function addRoom(wsIndex: number): void {
   const user = db.users.find(item => item.id === wsIndex);
   if (!user) return;
+  const roomFind = db.rooms.find(item => item.roomUsers.filter(itemRoomUser => itemRoomUser.index === wsIndex).length);
+  if (roomFind) return;
   counters.rooms++;
   const newRoom: IRoom = {
     roomId: counters.rooms,

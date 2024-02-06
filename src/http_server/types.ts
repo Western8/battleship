@@ -142,3 +142,8 @@ export interface Winner {
 }
 
 export type Winners = Winner[];
+
+export interface IGameResult {
+  winner: number;
+  players: number[];
+} 

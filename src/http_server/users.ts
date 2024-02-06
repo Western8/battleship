@@ -1,5 +1,6 @@
+import { deleteGame } from "./game";
 import { deleteRoom } from "./room";
-import { IUser, IUserResponse } from "./types";
+import { IGameResult, IUser, IUserResponse } from "./types";
 import { counters, db } from "./utils";
 
 export function addUser(dataUser: IUser, wsIndex: number): IUserResponse {
@@ -43,7 +44,9 @@ export function addBot(): number {
   return indexBot;
 }
 
-export function deleteUser(wsIndex: number): void {
+export function deleteUser(wsIndex: number): IGameResult | undefined {
   deleteRoom(wsIndex);
+  const gameResult = deleteGame(wsIndex);
   db.users = db.users.filter(item => item.id !== wsIndex);
+  return gameResult;
 }

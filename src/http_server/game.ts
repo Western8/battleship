@@ -1,4 +1,4 @@
-import { CellsY, Field, IAttackResult, IFeedback, IGame, IGamePlayer, IPosition, IRoom, IRoomUser, IShip, IShipModel, Players, Ships, ShipsTypes, Status } from "./types";
+import { CellsY, Field, IAttackResult, IFeedback, IGame, IGamePlayer, IGameResult, IPosition, IShip, IShipModel, Players, Ships, ShipsTypes, Status } from "./types";
 import { counters, db, random } from "./utils";
 
 export function addGame(players: Players): IGame {
@@ -331,4 +331,30 @@ export function getRandomShips(): Ships {
   });
 
   return ships;
+}
+
+export function deleteGame(wsIndex: number): IGameResult | undefined {
+  const game = db.games.find(item => item.players.filter(item2 => item2.idPlayer === wsIndex).length);
+  if (!game) return undefined;
+  const winner = game.players.find(item => item.idPlayer !== wsIndex)?.idPlayer;
+  if (winner) {
+    const winnerFind = db.winners.find(item => item.winner === winner);
+    if (winnerFind) {
+      winnerFind.wins++;
+    } else {
+      const userWinner = db.users.find(item => item.id === winner);
+      if (userWinner) {
+        db.winners.push({
+          winner,
+          name: userWinner.name,
+          wins: 1,
+        })
+      }
+    }
+    game.gameOver = true;
+    const players = game.players.map(item => item.idPlayer);
+    return { winner, players };
+  } else {
+    return undefined;
+  }
 }
